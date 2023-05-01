@@ -1,4 +1,5 @@
-import {Component} from '@angular/core';
+import {Component, ViewChild} from '@angular/core';
+import {QRCodeComponent} from 'angularx-qrcode';
 
 class Choice {
   constructor(public value: number, public choices: number[], public custom: boolean) {
@@ -30,17 +31,31 @@ export class AppComponent {
     false
   );
 
-  saveAsImage(parent: any) {
-    let parentElement: null
+  public colorLight: string = '#EEEEEE';
 
+  public useSvg: boolean = false;
+
+  saveAsSvg(parent: QRCodeComponent) {
+    const svg = parent.qrcElement.nativeElement
+      .querySelector("svg")
+      .outerHTML;
+
+    const blob = new Blob([svg.toString()]);
+    const element = document.createElement("a");
+    element.download = "qr.svg";
+    element.href = window.URL.createObjectURL(blob);
+    element.click();
+    element.remove();
+  }
+
+  saveAsImage(parent: QRCodeComponent) {
+    let parentElement: null
 
     parentElement = parent.qrcElement.nativeElement
       .querySelector("canvas")
       .toDataURL("image/png");
 
     if (parentElement) {
-
-
       // converts base 64 encoded image to blobData
       let blobData = this.convertBase64ToBlob(parentElement)
       // saves as image

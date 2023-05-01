@@ -66,10 +66,24 @@
           </div>
         </div>
 
+        <div class="mt-4">
+
+          <div class="mt-1 flex rounded-md items-center">
+            <input type="checkbox" id="useSvg"
+                   class="focus:ring-indigo-500 focus:border-indigo-500 block rounded-md sm:text-sm border-gray-300"
+                   [(ngModel)]="useSvg">
+            <label
+              class="inline-block pl-[0.15rem] ml-2 hover:cursor-pointer"
+              for="useSvg">
+              Utilizar SVG
+            </label>
+          </div>
+        </div>
+
         <div class="mt-1" *ngIf="marginChoice.custom || widthChoice.custom">
           <button type="button"
                   class="w-full items-center bg-purple-600 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-white hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                  (click)="saveAsImage(qrCode)">Download
+                  (click)="useSvg ? saveAsSvg(qrCode) : saveAsImage(qrCode)">Download
           </button>
         </div>
 
@@ -78,15 +92,16 @@
       <div class="flex flex-col justify-center items-center md:ml-4">
         <qrcode
           class="my-4 shadow-md"
+          [elementType]="useSvg ? 'svg' : 'canvas'"
           [class.hidden]="marginChoice.custom || widthChoice.custom"
-          [colorLight]="'#EEEEEE'"
-          #qrCode [qrdata]="textInput.length > 0 ? textInput : 'Placeholder'" [width]="widthChoice.value" [margin]="marginChoice.value"
-                [errorCorrectionLevel]="'M'">
+          #qrCode [qrdata]="textInput.length > 0 ? textInput : 'Placeholder'" [width]="widthChoice.value"
+          [margin]="marginChoice.value"
+          [errorCorrectionLevel]="'M'">
         </qrcode>
 
         <button *ngIf="!widthChoice.custom && !marginChoice.custom" type="button"
-                class="w-full shadow-md items-center bg-purple-600 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-white hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                (click)="saveAsImage(qrCode)">Download
+                class="w-full shadow-md items-center bg-purple-600 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-white hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                (click)="useSvg ? saveAsSvg(qrCode) : saveAsImage(qrCode)">Download
         </button>
       </div>
     </div>
