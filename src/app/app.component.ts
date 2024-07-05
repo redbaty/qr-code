@@ -1,5 +1,6 @@
-import {Component, ViewChild} from '@angular/core';
-import {QRCodeComponent} from 'angularx-qrcode';
+import { Component, ViewChild } from '@angular/core';
+import { QRCodeComponent } from 'angularx-qrcode';
+import { EmailProperty, FNProperty, NProperty, SpecialValueType, TelProperty, TextType, VCARD } from "vcard4";
 
 class Choice {
   constructor(public value: number, public choices: number[], public custom: boolean) {
@@ -15,6 +16,12 @@ class Choice {
   }
 }
 
+enum QrType {
+  link = 'link',
+  text = 'text',
+  vcard = 'vcard'
+}
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -22,6 +29,10 @@ class Choice {
 })
 export class AppComponent {
   public textInput = '';
+
+  public vcardInput = '';
+
+  public type: QrType = QrType.link;
 
   public widthChoice: Choice = new Choice(256, [-1, 256, 512], false);
 
@@ -34,6 +45,53 @@ export class AppComponent {
   public colorLight: string = '#EEEEEE';
 
   public useSvg: boolean = false;
+
+  public showVcardOutput: boolean = false;
+
+  public vcardForm: {
+    firstName: string,
+    lastName: string,
+    phone: string,
+    email: string
+  } = {
+      firstName: '',
+      lastName: '',
+      phone: '',
+      email: ''
+    };
+
+  public vcard: undefined | VCARD;
+
+  calculateVcard() {
+
+    if (this.vcardForm.firstName == '' && this.vcardForm.lastName == '') {
+      this.vcard = undefined;
+      this.textInput = '';
+    }
+
+    const nameArray = Array(5);
+
+    if (this.vcardForm.firstName && this.vcardForm.firstName != null)
+      nameArray[0] = new TextType(this.vcardForm.firstName);
+
+    if (this.vcardForm.lastName && this.vcardForm.lastName != null)
+      nameArray[1] = new TextType(this.vcardForm.lastName);
+
+    let ar = [
+      new FNProperty([], new TextType(`${this.vcardForm.firstName} ${this.vcardForm.lastName}`)),
+      new NProperty([], new SpecialValueType("NProperty", nameArray))
+    ];
+
+
+    if (this.vcardForm.phone && this.vcardForm.phone != null)
+      ar.push(new TelProperty([], new TextType(this.vcardForm.phone)));
+
+    if (this.vcardForm.email && this.vcardForm.email != null)
+      ar.push(new EmailProperty([], new TextType(this.vcardForm.email)));
+
+    this.vcard = new VCARD(ar);
+    this.textInput = this.vcard.repr();
+  }
 
   saveAsSvg(parent: QRCodeComponent) {
     const svg = parent.qrcElement.nativeElement
@@ -59,7 +117,7 @@ export class AppComponent {
       // converts base 64 encoded image to blobData
       let blobData = this.convertBase64ToBlob(parentElement)
       // saves as image
-      const blob = new Blob([blobData], {type: "image/png"})
+      const blob = new Blob([blobData], { type: "image/png" })
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.href = url
@@ -83,7 +141,7 @@ export class AppComponent {
       uInt8Array[i] = decodedData.charCodeAt(i)
     }
     // return blob image after conversion
-    return new Blob([uInt8Array], {type: imageType})
+    return new Blob([uInt8Array], { type: imageType })
   }
 
   setWidth(item: number) {
@@ -93,4 +151,11 @@ export class AppComponent {
   setMargin(item: number) {
     this.marginChoice.set(item);
   }
+
+  setQrType(t: string) {
+    this.type = t as QrType;
+  }
+
+  protected readonly Object = Object;
+  protected readonly QrType = QrType;
 }
