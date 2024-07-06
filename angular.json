@@ -69,10 +69,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "qr-code:build:production"
+              "buildTarget": "qr-code:build:production"
             },
             "development": {
-              "browserTarget": "qr-code:build:development"
+              "buildTarget": "qr-code:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -80,7 +80,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "qr-code:build"
+            "buildTarget": "qr-code:build"
           }
         },
         "test": {
