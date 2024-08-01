@@ -51,6 +51,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^3.0.0
+  inno_bundle: ^0.6.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -93,3 +94,11 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+inno_bundle:
+  id: f49505b5-e215-54d1-923e-a561002a7818
+  publisher: Marbs
+  name: QRo
+  installer_icon: assets/icon.ico
+
+admin: false
