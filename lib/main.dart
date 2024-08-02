@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
-
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:barcode_image/barcode_image.dart';
+import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
+import 'package:super_clipboard/super_clipboard.dart';
 import 'package:vcard_maintained/vcard_maintained.dart';
 
 void main() {
@@ -42,12 +45,20 @@ class QrGeneratorState extends State<QrGenerator> {
   QrPngSize pngSize = QrPngSize.medium;
   int finalPngSize = 512;
 
+  late Color qrForegroundColor;
+
   final _formKey = GlobalKey<FormState>();
   final vCard = VCard();
 
   final _customSizeController = TextEditingController();
 
   String textInput = '';
+
+  @override
+  void initState() {
+    super.initState();
+    qrForegroundColor = Colors.black;
+  }
 
   int getSize() {
     switch (pngSize) {
@@ -84,34 +95,50 @@ class QrGeneratorState extends State<QrGenerator> {
     textInput = vCard.getFormattedString();
   }
 
-  Future<void> saveQrCode() async {
+  Future<void> saveQrCode(QrSaveType saveType) async {
+    if (saveType == QrSaveType.file) {
+      final extension = outputType == QrOutputType.png ? 'png' : 'svg';
+      final fileName = 'qro-code.$extension';
+
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'Please select an output file:',
+        fileName: fileName,
+      );
+
+      if (outputFile != null) {
+        await File(outputFile).writeAsBytes(getQrCode());
+      }
+    } else if (saveType == QrSaveType.clipboard) {
+      final data = getQrCode();
+      final item = DataWriterItem();
+
+      final clipboard = SystemClipboard.instance;
+      if (clipboard == null) {
+        throw Exception('Clipboard is not available on this platform');
+      }
+
+      if (outputType == QrOutputType.png) {
+        item.add(Formats.png(data));
+      } else {
+        item.add(Formats.svg(data));
+      }
+
+      await clipboard.write([item]);
+    }
+  }
+
+  Uint8List getQrCode() {
     final bc = Barcode.qrCode();
 
     if (outputType == QrOutputType.svg) {
       final svg = bc.toSvg(textInput);
-
-      String? outputFile = await FilePicker.platform.saveFile(
-        dialogTitle: 'Please select an output file:',
-        fileName: 'output-file.svg',
-      );
-
-      if (outputFile != null) {
-        await File(outputFile).writeAsString(svg);
-      }
+      return utf8.encode(svg);
     } else if (outputType == QrOutputType.png) {
       final size = getSize();
       final image = img.Image(width: size, height: size);
       img.fill(image, color: img.ColorRgb8(255, 255, 255));
       drawBarcode(image, bc, textInput);
-
-      String? outputFile = await FilePicker.platform.saveFile(
-        dialogTitle: 'Please select an output file:',
-        fileName: 'output-file.png',
-      );
-
-      if (outputFile != null) {
-        await File(outputFile).writeAsBytes(img.encodePng(image));
-      }
+      return img.encodePng(image);
     } else {
       throw Exception('Invalid output type');
     }
@@ -149,7 +176,7 @@ class QrGeneratorState extends State<QrGenerator> {
                       children: [
                         Container(
                           constraints: const BoxConstraints(
-                            maxWidth: 600.0,
+                            maxWidth: 480.0,
                           ),
                           child: Column(
                             children: [
@@ -423,19 +450,61 @@ class QrGeneratorState extends State<QrGenerator> {
                         ),
                         Container(
                           margin: const EdgeInsets.only(left: 16.0),
+                          constraints: const BoxConstraints(
+                            maxWidth: 400.0,
+                          ),
+                          child: ColorPicker(
+                            showColorCode: true,
+                            colorCodeReadOnly: false,
+                            enableShadesSelection: false,
+                            color: qrForegroundColor,
+                            pickersEnabled: const <ColorPickerType, bool>{
+                              ColorPickerType.both: false,
+                              ColorPickerType.primary: false,
+                              ColorPickerType.accent: false,
+                              ColorPickerType.bw: false,
+                              ColorPickerType.custom: false,
+                              ColorPickerType.wheel: true,
+                            },
+                            onColorChanged: (Color value) {
+                              setState(() {
+                                qrForegroundColor = value;
+                              });
+                            },
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(left: 16.0),
                           child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
                             children: [
                               if (qrCodeViewSettings.show)
                                 BarcodeWidget(
-                                  barcode: Barcode.qrCode(),
+                                  barcode: Barcode.qrCode(
+                                      errorCorrectLevel:
+                                          BarcodeQRCorrectionLevel.high),
                                   data: textInput,
                                   width: qrCodeViewSettings.size.toDouble(),
+                                  color: qrForegroundColor,
                                 ),
                               const SizedBox(height: 16.0),
-                              ElevatedButton(
-                                onPressed: saveQrCode,
-                                child: const Text('Salvar QR Code'),
-                              ),
+                              OverflowBar(
+                                spacing: 8,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed: () =>
+                                        saveQrCode(QrSaveType.file),
+                                    label: const Text('Salvar QR Code'),
+                                    icon: const Icon(Icons.save),
+                                  ),
+                                  ElevatedButton.icon(
+                                    onPressed: () =>
+                                        saveQrCode(QrSaveType.clipboard),
+                                    icon: const Icon(Icons.copy_all_rounded),
+                                    label: const Text('Copiar QR Code'),
+                                  ),
+                                ],
+                              )
                             ],
                           ),
                         )
@@ -451,6 +520,8 @@ class QrGeneratorState extends State<QrGenerator> {
     );
   }
 }
+
+enum QrSaveType { file, clipboard }
 
 enum QrPngSize { custom, medium, large }
 

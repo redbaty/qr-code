@@ -40,6 +40,8 @@ dependencies:
   barcode_image: ^2.0.3
   image: ^4.2.0
   vcard_maintained: ^0.0.1+1
+  flex_color_picker: ^3.5.1
+  super_clipboard: ^0.8.18
 
 dev_dependencies:
   flutter_test:
