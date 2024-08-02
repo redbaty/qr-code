@@ -159,358 +159,370 @@ class QrGeneratorState extends State<QrGenerator> {
           child: Center(
             child: Card(
               elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'QRo',
-                      style:
-                          TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                    ),
-                    const Text('Um gerador pra gabi'),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          constraints: const BoxConstraints(
-                            maxWidth: 480.0,
-                          ),
-                          child: Column(
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text('Tipo de QR Code',
-                                      style: theme.textTheme.titleSmall),
-                                  Container(
-                                    margin: const EdgeInsets.only(top: 8.0),
-                                    child: SegmentedButton<QrType>(
-                                      segments: const [
-                                        ButtonSegment(
-                                          value: QrType.link,
-                                          label: Text('Link'),
-                                          icon: Icon(Icons.link),
-                                        ),
-                                        ButtonSegment(
-                                          value: QrType.text,
-                                          label: Text('Texto'),
-                                          icon: Icon(Icons.text_fields),
-                                        ),
-                                        ButtonSegment(
-                                          value: QrType.vcard,
-                                          label: Text('vCard'),
-                                          icon: Icon(Icons.person),
-                                        ),
-                                      ],
-                                      selected: <QrType>{type},
-                                      onSelectionChanged: (value) {
-                                        setQrType(value.first);
-                                      },
-                                    ),
-                                  ),
-                                  Card(
-                                    color: Colors.grey[200],
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Column(
-                                        children: [
-                                          if (type == QrType.link ||
-                                              type == QrType.text) ...[
-                                            Container(
-                                              alignment: Alignment.centerLeft,
-                                              child: Text('Texto do QR Code',
-                                                  style: theme
-                                                      .textTheme.titleSmall),
-                                            ),
-                                            ConstrainedBox(
-                                              constraints: const BoxConstraints(
-                                                  maxHeight: 200),
-                                              child: SingleChildScrollView(
-                                                scrollDirection: Axis.vertical,
-                                                child: TextFormField(
-                                                  maxLines: type == QrType.text
-                                                      ? null
-                                                      : 1,
-                                                  decoration: InputDecoration(
-                                                      hintText: type ==
-                                                              QrType.link
-                                                          ? 'https://example.com'
-                                                          : 'Texto'),
-                                                  validator: (value) {
-                                                    if (value == null ||
-                                                        value.isEmpty) {
-                                                      return 'Por favor, insira um valor';
-                                                    }
-
-                                                    if (type == QrType.link &&
-                                                        !Uri.tryParse(value)!
-                                                            .isAbsolute) {
-                                                      return 'Por favor, insira um link válido';
-                                                    }
-
-                                                    return null;
-                                                  },
-                                                  onChanged: (value) {
-                                                    if (_formKey.currentState!
-                                                        .validate()) {
-                                                      setState(() {
-                                                        textInput = value;
-                                                      });
-                                                    }
-                                                  },
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                          if (type == QrType.vcard) ...[
-                                            Wrap(
-                                              spacing: 10.0,
-                                              runSpacing: 10.0,
-                                              children: [
-                                                TextField(
-                                                  decoration:
-                                                      const InputDecoration(
-                                                          border:
-                                                              OutlineInputBorder(),
-                                                          icon: Icon(Icons
-                                                              .badge_outlined),
-                                                          labelText: 'Nome'),
-                                                  onChanged: (value) {
-                                                    setState(() {
-                                                      vCard.firstName = value;
-                                                      calculateVcard();
-                                                    });
-                                                  },
-                                                ),
-                                                TextField(
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    labelText: 'Sobrenome',
-                                                    icon: Icon(
-                                                        Icons.person_outline),
-                                                    border:
-                                                        OutlineInputBorder(),
-                                                  ),
-                                                  onChanged: (value) {
-                                                    setState(() {
-                                                      vCard.lastName = value;
-                                                      calculateVcard();
-                                                    });
-                                                  },
-                                                ),
-                                                TextFormField(
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    labelText: 'Telefone',
-                                                    icon: Icon(
-                                                        Icons.phone_outlined),
-                                                    border:
-                                                        OutlineInputBorder(),
-                                                  ),
-                                                  validator: (value) {
-                                                    if (value == null ||
-                                                        value.isEmpty) {
-                                                      return 'Por favor, insira um valor';
-                                                    }
-
-                                                    const phoneRegex =
-                                                        r'^\+?[\d\s-]+$';
-                                                    if (!RegExp(phoneRegex)
-                                                        .hasMatch(value)) {
-                                                      return 'Por favor, insira um telefone válido';
-                                                    }
-
-                                                    return null;
-                                                  },
-                                                  onChanged: (value) {
-                                                    if (_formKey.currentState!
-                                                        .validate()) {
-                                                      setState(() {
-                                                        vCard.cellPhone = value;
-                                                        calculateVcard();
-                                                      });
-                                                    }
-                                                  },
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16.0),
-                                  Text('Tipo de Saída',
-                                      style: theme.textTheme.titleSmall),
-                                  Container(
-                                    margin: const EdgeInsets.only(top: 8.0),
-                                    child: SegmentedButton<QrOutputType>(
-                                      segments: const [
-                                        ButtonSegment(
-                                          value: QrOutputType.png,
-                                          label: Text('PNG'),
-                                          icon: Icon(Icons.image),
-                                        ),
-                                        ButtonSegment(
-                                          value: QrOutputType.svg,
-                                          label: Text('SVG'),
-                                          icon: Icon(Icons.image),
-                                        ),
-                                      ],
-                                      selected: <QrOutputType>{outputType},
-                                      onSelectionChanged: (value) {
-                                        setState(() {
-                                          outputType = value.first;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  if (outputType == QrOutputType.png) ...[
-                                    const SizedBox(height: 16.0),
-                                    Text('Tamanho do PNG',
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'QRo',
+                        style: TextStyle(
+                            fontSize: 32, fontWeight: FontWeight.bold),
+                      ),
+                      const Text('Um gerador pra gabi'),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 16.0,
+                        runSpacing: 16.0,
+                        children: [
+                          Container(
+                            constraints: const BoxConstraints(
+                              maxWidth: 480.0,
+                            ),
+                            child: Column(
+                              children: [
+                                Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text('Tipo de QR Code',
                                         style: theme.textTheme.titleSmall),
                                     Container(
                                       margin: const EdgeInsets.only(top: 8.0),
-                                      child: SegmentedButton<QrPngSize>(
+                                      child: SegmentedButton<QrType>(
                                         segments: const [
                                           ButtonSegment(
-                                            value: QrPngSize.custom,
-                                            label: Text('Custom'),
+                                            value: QrType.link,
+                                            label: Text('Link'),
+                                            icon: Icon(Icons.link),
+                                          ),
+                                          ButtonSegment(
+                                            value: QrType.text,
+                                            label: Text('Texto'),
+                                            icon: Icon(Icons.text_fields),
+                                          ),
+                                          ButtonSegment(
+                                            value: QrType.vcard,
+                                            label: Text('vCard'),
+                                            icon: Icon(Icons.person),
+                                          ),
+                                        ],
+                                        selected: <QrType>{type},
+                                        onSelectionChanged: (value) {
+                                          setQrType(value.first);
+                                        },
+                                      ),
+                                    ),
+                                    Card(
+                                      color: Colors.grey[200],
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Column(
+                                          children: [
+                                            if (type == QrType.link ||
+                                                type == QrType.text) ...[
+                                              Container(
+                                                alignment: Alignment.centerLeft,
+                                                child: Text('Texto do QR Code',
+                                                    style: theme
+                                                        .textTheme.titleSmall),
+                                              ),
+                                              ConstrainedBox(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                        maxHeight: 200),
+                                                child: SingleChildScrollView(
+                                                  scrollDirection:
+                                                      Axis.vertical,
+                                                  child: TextFormField(
+                                                    maxLines:
+                                                        type == QrType.text
+                                                            ? null
+                                                            : 1,
+                                                    decoration: InputDecoration(
+                                                      hintText: type ==
+                                                              QrType.link
+                                                          ? 'https://example.com'
+                                                          : 'Texto',
+                                                    ),
+                                                    validator: (value) {
+                                                      if (value == null ||
+                                                          value.isEmpty) {
+                                                        return 'Por favor, insira um valor';
+                                                      }
+
+                                                      if (type == QrType.link &&
+                                                          !Uri.tryParse(value)!
+                                                              .isAbsolute) {
+                                                        return 'Por favor, insira um link válido';
+                                                      }
+
+                                                      return null;
+                                                    },
+                                                    onChanged: (value) {
+                                                      if (_formKey.currentState!
+                                                          .validate()) {
+                                                        setState(() {
+                                                          textInput = value;
+                                                        });
+                                                      }
+                                                    },
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                            if (type == QrType.vcard) ...[
+                                              Wrap(
+                                                spacing: 10.0,
+                                                runSpacing: 10.0,
+                                                children: [
+                                                  TextField(
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                      icon: Icon(
+                                                          Icons.badge_outlined),
+                                                      labelText: 'Nome',
+                                                    ),
+                                                    onChanged: (value) {
+                                                      setState(() {
+                                                        vCard.firstName = value;
+                                                        calculateVcard();
+                                                      });
+                                                    },
+                                                  ),
+                                                  TextField(
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      labelText: 'Sobrenome',
+                                                      icon: Icon(
+                                                          Icons.person_outline),
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                    ),
+                                                    onChanged: (value) {
+                                                      setState(() {
+                                                        vCard.lastName = value;
+                                                        calculateVcard();
+                                                      });
+                                                    },
+                                                  ),
+                                                  TextFormField(
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      labelText: 'Telefone',
+                                                      icon: Icon(
+                                                          Icons.phone_outlined),
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                    ),
+                                                    validator: (value) {
+                                                      if (value == null ||
+                                                          value.isEmpty) {
+                                                        return 'Por favor, insira um valor';
+                                                      }
+
+                                                      const phoneRegex =
+                                                          r'^\+?[\d\s-]+$';
+                                                      if (!RegExp(phoneRegex)
+                                                          .hasMatch(value)) {
+                                                        return 'Por favor, insira um telefone válido';
+                                                      }
+
+                                                      return null;
+                                                    },
+                                                    onChanged: (value) {
+                                                      if (_formKey.currentState!
+                                                          .validate()) {
+                                                        setState(() {
+                                                          vCard.cellPhone =
+                                                              value;
+                                                          calculateVcard();
+                                                        });
+                                                      }
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16.0),
+                                    Text('Tipo de Saída',
+                                        style: theme.textTheme.titleSmall),
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 8.0),
+                                      child: SegmentedButton<QrOutputType>(
+                                        segments: const [
+                                          ButtonSegment(
+                                            value: QrOutputType.png,
+                                            label: Text('PNG'),
                                             icon: Icon(Icons.image),
                                           ),
                                           ButtonSegment(
-                                            value: QrPngSize.medium,
-                                            label: Text('Médio (512px)'),
-                                            icon: Icon(Icons.image),
-                                          ),
-                                          ButtonSegment(
-                                            value: QrPngSize.large,
-                                            label: Text('Grande (1024px)'),
+                                            value: QrOutputType.svg,
+                                            label: Text('SVG'),
                                             icon: Icon(Icons.image),
                                           ),
                                         ],
-                                        selected: <QrPngSize>{pngSize},
+                                        selected: <QrOutputType>{outputType},
                                         onSelectionChanged: (value) {
-                                          final localPngSize = value.first;
-
-                                          if (localPngSize ==
-                                              QrPngSize.custom) {
-                                            _customSizeController.text =
-                                                finalPngSize.toString();
-                                          }
-
                                           setState(() {
-                                            pngSize = value.first;
-                                            finalPngSize = getSize();
+                                            outputType = value.first;
                                           });
                                         },
                                       ),
                                     ),
-                                    if (pngSize == QrPngSize.custom) ...[
-                                      TextFormField(
-                                        decoration: const InputDecoration(
-                                            labelText: 'Tamanho Customizado',
-                                            suffix: Text('px')),
-                                        controller: _customSizeController,
-                                        keyboardType: TextInputType.number,
-                                        validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'Por favor, insira um valor';
-                                          }
-
-                                          if (int.tryParse(value) == null) {
-                                            return 'Por favor, insira um valor válido';
-                                          }
-
-                                          return null;
-                                        },
-                                        onChanged: (value) {
-                                          if (_formKey.currentState!
-                                              .validate()) {
-                                            final asInt = int.tryParse(value);
-
-                                            if (asInt != null) {
-                                              setState(() {
-                                                finalPngSize = asInt;
-                                              });
-                                            }
-                                          }
-                                        },
-                                      ),
+                                    if (outputType == QrOutputType.png) ...[
                                       const SizedBox(height: 16.0),
+                                      Text('Tamanho do PNG',
+                                          style: theme.textTheme.titleSmall),
+                                      Container(
+                                        margin: const EdgeInsets.only(top: 8.0),
+                                        child: SegmentedButton<QrPngSize>(
+                                          segments: const [
+                                            ButtonSegment(
+                                              value: QrPngSize.custom,
+                                              label: Text('Custom'),
+                                              icon: Icon(Icons.image),
+                                            ),
+                                            ButtonSegment(
+                                              value: QrPngSize.medium,
+                                              label: Text('Médio (512px)'),
+                                              icon: Icon(Icons.image),
+                                            ),
+                                            ButtonSegment(
+                                              value: QrPngSize.large,
+                                              label: Text('Grande (1024px)'),
+                                              icon: Icon(Icons.image),
+                                            ),
+                                          ],
+                                          selected: <QrPngSize>{pngSize},
+                                          onSelectionChanged: (value) {
+                                            final localPngSize = value.first;
+
+                                            if (localPngSize ==
+                                                QrPngSize.custom) {
+                                              _customSizeController.text =
+                                                  finalPngSize.toString();
+                                            }
+
+                                            setState(() {
+                                              pngSize = value.first;
+                                              finalPngSize = getSize();
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      if (pngSize == QrPngSize.custom) ...[
+                                        TextFormField(
+                                          decoration: const InputDecoration(
+                                            labelText: 'Tamanho Customizado',
+                                            suffix: Text('px'),
+                                          ),
+                                          controller: _customSizeController,
+                                          keyboardType: TextInputType.number,
+                                          validator: (value) {
+                                            if (value == null ||
+                                                value.isEmpty) {
+                                              return 'Por favor, insira um valor';
+                                            }
+
+                                            if (int.tryParse(value) == null) {
+                                              return 'Por favor, insira um valor válido';
+                                            }
+
+                                            return null;
+                                          },
+                                          onChanged: (value) {
+                                            if (_formKey.currentState!
+                                                .validate()) {
+                                              final asInt = int.tryParse(value);
+
+                                              if (asInt != null) {
+                                                setState(() {
+                                                  finalPngSize = asInt;
+                                                });
+                                              }
+                                            }
+                                          },
+                                        ),
+                                        const SizedBox(height: 16.0),
+                                      ],
                                     ],
                                   ],
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(left: 16.0),
-                          constraints: const BoxConstraints(
-                            maxWidth: 400.0,
-                          ),
-                          child: ColorPicker(
-                            showColorCode: true,
-                            colorCodeReadOnly: false,
-                            enableShadesSelection: false,
-                            color: qrForegroundColor,
-                            pickersEnabled: const <ColorPickerType, bool>{
-                              ColorPickerType.both: false,
-                              ColorPickerType.primary: false,
-                              ColorPickerType.accent: false,
-                              ColorPickerType.bw: false,
-                              ColorPickerType.custom: false,
-                              ColorPickerType.wheel: true,
-                            },
-                            onColorChanged: (Color value) {
-                              setState(() {
-                                qrForegroundColor = value;
-                              });
-                            },
-                          ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(left: 16.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              if (qrCodeViewSettings.show)
-                                BarcodeWidget(
-                                  barcode: Barcode.qrCode(
-                                      errorCorrectLevel:
-                                          BarcodeQRCorrectionLevel.high),
-                                  data: textInput,
-                                  width: qrCodeViewSettings.size.toDouble(),
-                                  color: qrForegroundColor,
                                 ),
-                              const SizedBox(height: 16.0),
-                              OverflowBar(
-                                spacing: 8,
-                                children: [
-                                  ElevatedButton.icon(
-                                    onPressed: () =>
-                                        saveQrCode(QrSaveType.file),
-                                    label: const Text('Salvar QR Code'),
-                                    icon: const Icon(Icons.save),
-                                  ),
-                                  ElevatedButton.icon(
-                                    onPressed: () =>
-                                        saveQrCode(QrSaveType.clipboard),
-                                    icon: const Icon(Icons.copy_all_rounded),
-                                    label: const Text('Copiar QR Code'),
-                                  ),
-                                ],
-                              )
-                            ],
+                              ],
+                            ),
                           ),
-                        )
-                      ],
-                    ),
-                  ],
+                          Container(
+                            margin: const EdgeInsets.only(left: 16.0),
+                            constraints: const BoxConstraints(
+                              maxWidth: 400.0,
+                            ),
+                            child: ColorPicker(
+                              showColorCode: true,
+                              colorCodeReadOnly: false,
+                              enableShadesSelection: false,
+                              color: qrForegroundColor,
+                              pickersEnabled: const <ColorPickerType, bool>{
+                                ColorPickerType.both: false,
+                                ColorPickerType.primary: false,
+                                ColorPickerType.accent: false,
+                                ColorPickerType.bw: false,
+                                ColorPickerType.custom: false,
+                                ColorPickerType.wheel: true,
+                              },
+                              onColorChanged: (Color value) {
+                                setState(() {
+                                  qrForegroundColor = value;
+                                });
+                              },
+                            ),
+                          ),
+                          Container(
+                            margin: const EdgeInsets.only(left: 16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                if (qrCodeViewSettings.show)
+                                  BarcodeWidget(
+                                    barcode: Barcode.qrCode(
+                                        errorCorrectLevel:
+                                            BarcodeQRCorrectionLevel.high),
+                                    data: textInput,
+                                    width: qrCodeViewSettings.size.toDouble(),
+                                    color: qrForegroundColor,
+                                  ),
+                                const SizedBox(height: 16.0),
+                                OverflowBar(
+                                  spacing: 8,
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: () =>
+                                          saveQrCode(QrSaveType.file),
+                                      label: const Text('Salvar QR Code'),
+                                      icon: const Icon(Icons.save),
+                                    ),
+                                    ElevatedButton.icon(
+                                      onPressed: () =>
+                                          saveQrCode(QrSaveType.clipboard),
+                                      icon: const Icon(Icons.copy_all_rounded),
+                                      label: const Text('Copiar QR Code'),
+                                    ),
+                                  ],
+                                )
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
