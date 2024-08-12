@@ -120,7 +120,7 @@ class QrGeneratorState extends State<QrGenerator> {
       if (outputType == QrOutputType.png) {
         item.add(Formats.png(data));
       } else {
-        item.add(Formats.svg(data));
+        item.add(Formats.plainText(utf8.decode(data)));
       }
 
       await clipboard.write([item]);
@@ -128,16 +128,16 @@ class QrGeneratorState extends State<QrGenerator> {
   }
 
   Uint8List getQrCode() {
-    final bc = Barcode.qrCode();
+    final bc = Barcode.qrCode(errorCorrectLevel: BarcodeQRCorrectionLevel.high);
 
     if (outputType == QrOutputType.svg) {
-      final svg = bc.toSvg(textInput);
+      final svg = bc.toSvg(textInput, color: qrForegroundColor.value);
       return utf8.encode(svg);
     } else if (outputType == QrOutputType.png) {
       final size = getSize();
       final image = img.Image(width: size, height: size);
       img.fill(image, color: img.ColorRgb8(255, 255, 255));
-      drawBarcode(image, bc, textInput);
+      drawBarcode(image, bc, textInput, color: qrForegroundColor.value);
       return img.encodePng(image);
     } else {
       throw Exception('Invalid output type');
