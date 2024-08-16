@@ -45,6 +45,8 @@ class QrGeneratorState extends State<QrGenerator> {
   QrPngSize pngSize = QrPngSize.medium;
   int finalPngSize = 512;
 
+  bool pngWithoutBackground = true;
+
   late Color qrForegroundColor;
 
   final _formKey = GlobalKey<FormState>();
@@ -135,8 +137,12 @@ class QrGeneratorState extends State<QrGenerator> {
       return utf8.encode(svg);
     } else if (outputType == QrOutputType.png) {
       final size = getSize();
-      final image = img.Image(width: size, height: size);
-      img.fill(image, color: img.ColorRgb8(255, 255, 255));
+      final image = img.Image(width: size, height: size, numChannels: 4);
+
+      if (!pngWithoutBackground) {
+        img.fill(image, color: img.ColorRgb8(255, 255, 255));
+      }
+
       drawBarcode(image, bc, textInput, color: qrForegroundColor.value);
       return img.encodePng(image);
     } else {
@@ -378,6 +384,17 @@ class QrGeneratorState extends State<QrGenerator> {
                                       ),
                                     ),
                                     if (outputType == QrOutputType.png) ...[
+                                      const SizedBox(height: 16.0),
+                                      CheckboxListTile(
+                                        title:
+                                            const Text('Gerar PNG sem fundo'),
+                                        value: pngWithoutBackground,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            pngWithoutBackground = value!;
+                                          });
+                                        },
+                                      ),
                                       const SizedBox(height: 16.0),
                                       Text('Tamanho do PNG',
                                           style: theme.textTheme.titleSmall),
