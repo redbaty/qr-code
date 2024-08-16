@@ -12,6 +12,10 @@ jobs:
       should_run: ${{ steps.get-version.outputs.should_run }}
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install js-yaml
+        run: npm install js-yaml
+
       - id: get-version
         uses: actions/github-script@v6
         with:
