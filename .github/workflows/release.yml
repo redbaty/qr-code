@@ -50,13 +50,49 @@ jobs:
     needs: check-version
     if: needs.check-version.outputs.should_run == 'true'
     runs-on: ubuntu-latest  
-    # ... (rest of the build-android job remains the same)
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # To ensure Flutter's version management works
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'  # Or your preferred channel
+
+      - run: flutter pub get
+
+      - name: Build Android
+        run: flutter build apk --release
+
+      - name: Upload Android Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-build
+          path: build/app/outputs/flutter-apk/app-release.apk
 
   build-windows:
     needs: check-version
     if: needs.check-version.outputs.should_run == 'true'
     runs-on: windows-latest  
-    # ... (rest of the build-windows job remains the same)
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # To ensure Flutter's version management works
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'  # Or your preferred channel
+
+      - run: flutter pub get
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-build
+          path: build/windows/runner/release/*.exe
 
   release:
     needs: [build-android, build-windows, check-version]
