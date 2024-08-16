@@ -1,0 +1,60 @@
+name: Publish Release
+
+on:
+  push:
+    branches: [ main ]  # Or your preferred branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # We'll use Ubuntu for flexibility
+    strategy:
+      matrix:
+        platform: [windows, android]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # To ensure Flutter's version management works
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'  # Or your preferred channel
+
+      - run: flutter pub get
+
+      - name: Build
+        if: matrix.platform == 'windows'
+        run: flutter build windows --release
+
+      - name: Build
+        if: matrix.platform == 'android'
+        run: flutter build apk --release
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.platform }}-build
+          path: |
+            build/${{ matrix.platform }}/*release/*.apk
+            build/${{ matrix.platform }}/runner/release/*.exe
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/windows-build/*.exe
+            artifacts/android-build/*.apk
+          tag_name: v1.0.0  # Or use a dynamic versioning strategy
+          name: Release v1.0.0
+          body: |
+            This is the first release of our app!
+            It includes both Windows and Android builds.
