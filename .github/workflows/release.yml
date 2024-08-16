@@ -5,41 +5,62 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest  # We'll use Ubuntu for flexibility
-    strategy:
-      matrix:
-        platform: [windows, android]
-
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.get-version.outputs.new_version }}
+      should_run: ${{ steps.get-version.outputs.should_run }}
     steps:
       - uses: actions/checkout@v3
+      - id: get-version
+        uses: actions/github-script@v6
         with:
-          fetch-depth: 0  # To ensure Flutter's version management works
+          script: |
+            const fs = require('fs');
+            const yaml = require('js-yaml');
 
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'  # Or your preferred channel
+            const pubspec = yaml.load(fs.readFileSync('./pubspec.yaml', 'utf8'));
+            const currentVersion = pubspec.version;
 
-      - run: flutter pub get
+            const tagPrefix = 'v'; // Adjust if your tags don't start with 'v'
+            const tags = await github.rest.repos.listTags({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
 
-      - name: Build
-        if: matrix.platform == 'windows'
-        run: flutter build windows --release
+            const latestTag = tags.data.find(tag => tag.name.startsWith(tagPrefix));
+            const latestVersion = latestTag ? latestTag.name.slice(tagPrefix.length) : '0.0.0';
 
-      - name: Build
-        if: matrix.platform == 'android'
-        run: flutter build apk --release
+            const [major, minor, patch] = currentVersion.split('.').map(Number);
+            const [latestMajor, latestMinor, latestPatch] = latestVersion.split('.').map(Number);
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.platform }}-build
-          path: |
-            build/${{ matrix.platform }}/*release/*.apk
-            build/${{ matrix.platform }}/runner/release/*.exe
+            let newVersion = currentVersion;
+            let shouldRun = false;
+
+            if (major > latestMajor || (major === latestMajor && minor > latestMinor) || 
+                (major === latestMajor && minor === latestMinor && patch > latestPatch)) {
+              newVersion = currentVersion;
+              shouldRun = true;
+            } 
+
+            core.setOutput('new_version', newVersion);
+            core.setOutput('should_run', shouldRun);
+
+  build-android:
+    needs: check-version
+    if: needs.check-version.outputs.should_run == 'true'
+    runs-on: ubuntu-latest  
+    # ... (rest of the build-android job remains the same)
+
+  build-windows:
+    needs: check-version
+    if: needs.check-version.outputs.should_run == 'true'
+    runs-on: windows-latest  
+    # ... (rest of the build-windows job remains the same)
 
   release:
-    needs: build
+    needs: [build-android, build-windows, check-version]
+    if: needs.check-version.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifacts
@@ -53,8 +74,8 @@ jobs:
           files: |
             artifacts/windows-build/*.exe
             artifacts/android-build/*.apk
-          tag_name: v1.0.0  # Or use a dynamic versioning strategy
-          name: Release v1.0.0
+          tag_name: v${{ needs.check-version.outputs.new_version }}
+          name: Release v${{ needs.check-version.outputs.new_version }}
           body: |
-            This is the first release of our app!
+            This is a new release of our app!
             It includes both Windows and Android builds.
