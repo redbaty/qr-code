@@ -11,7 +11,7 @@ jobs:
       new_version: ${{ steps.get-version.outputs.new_version }}
       should_run: ${{ steps.get-version.outputs.should_run }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install js-yaml
         run: npm install js-yaml
@@ -55,7 +55,7 @@ jobs:
     if: needs.check-version.outputs.should_run == 'true'
     runs-on: ubuntu-latest  
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # To ensure Flutter's version management works
 
@@ -85,7 +85,7 @@ jobs:
     if: needs.check-version.outputs.should_run == 'true'
     runs-on: windows-latest  
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # To ensure Flutter's version management works
 
