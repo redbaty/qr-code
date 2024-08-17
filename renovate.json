@@ -5,7 +5,7 @@
   ],
   "packageRules": [
     {
-      "matchManagers": ["gradle"], 
+      "matchManagers": ["gradle", "gradle-wrapper"], 
       "matchPackageNames": ["*"], 
       "enabled": false
     }
