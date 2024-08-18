@@ -95,14 +95,26 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Build Windows
+      - name: Build Windows (Setup)
         run: dart run inno_bundle:build --release
+
+      - name: Build Windows (Zip)
+        run: flutter build windows --release
+
+      - name: Zip Windows Build
+        run: 7z a build/windows/x64/installer/Release/windows-build.zip build/windows/x64/runner/Release*
 
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
           path: build/windows/x64/installer/Release/*-Installer.exe
+
+      - name: Upload Windows Zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-zip
+          path: build/windows/x64/installer/Release/windows-x64-build.zip          
 
   release:
     needs: [build-android, build-windows, check-version]
@@ -120,6 +132,7 @@ jobs:
           files: |
             artifacts/windows-build/*.exe
             artifacts/android-build/*.apk
+            artifacts/windows-x64-zip.zip
           tag_name: v${{ needs.check-version.outputs.new_version }}
           name: Release v${{ needs.check-version.outputs.new_version }}
           body: |
