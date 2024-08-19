@@ -41,9 +41,7 @@ jobs:
             let newVersion = currentVersion;
             let shouldRun = false;
 
-            if (major > latestMajor || (major === latestMajor && minor > latestMinor) || 
-                (major === latestMajor && minor === latestMinor && patch > latestPatch)) {
-              newVersion = currentVersion;
+            if (currentVersion !== latestVersion) {
               shouldRun = true;
             } 
 
