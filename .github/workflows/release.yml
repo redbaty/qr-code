@@ -47,6 +47,11 @@ jobs:
               shouldRun = true;
             } 
 
+            console.log(`Current version: ${currentVersion}`);
+            console.log(`Latest version: ${latestVersion}`);
+            console.log(`New version: ${newVersion}`);
+            console.log(`Should run: ${shouldRun}`);
+
             core.setOutput('new_version', newVersion);
             core.setOutput('should_run', shouldRun);
 
