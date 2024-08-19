@@ -116,8 +116,8 @@ jobs:
       - name: Upload Windows Zip
         uses: actions/upload-artifact@v4
         with:
-          name: windows-x64-zip
-          path: build/windows/x64/installer/Release/windows-x64-build.zip          
+          name: windows-x64
+          path: build/windows/x64/installer/Release/windows-build.zip      
 
   release:
     needs: [build-android, build-windows, check-version]
@@ -135,7 +135,7 @@ jobs:
           files: |
             artifacts/windows-build/*.exe
             artifacts/android-build/*.apk
-            artifacts/windows-x64-zip.zip
+            artifacts/windows-x64.zip
           tag_name: v${{ needs.check-version.outputs.new_version }}
           name: Release v${{ needs.check-version.outputs.new_version }}
           body: |
