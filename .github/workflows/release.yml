@@ -135,7 +135,7 @@ jobs:
           files: |
             artifacts/windows-build/*.exe
             artifacts/android-build/*.apk
-            artifacts/windows-x64.zip
+            artifacts/windows-x64/*.zip
           tag_name: v${{ needs.check-version.outputs.new_version }}
           name: Release v${{ needs.check-version.outputs.new_version }}
           body: |
