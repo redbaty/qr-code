@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "25412054847",
+    "project_id": "qro-gen",
+    "storage_bucket": "qro-gen.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:25412054847:android:1aa6d63700bc7c94dd6d8a",
+        "android_client_info": {
+          "package_name": "com.mvmcj.qro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBI-I0wKQLs4m3h4_AnBHLy34RZfMBrZBQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
