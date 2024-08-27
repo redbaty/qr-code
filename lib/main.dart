@@ -1,16 +1,21 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:barcode_image/barcode_image.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
+import 'package:qr_code/pages/login_page.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:vcard_maintained/vcard_maintained.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,9 +32,62 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: QrGenerator(),
-    );
+    return MaterialApp(
+        title: 'QRo',
+        theme: ThemeData.light(useMaterial3: true),
+        home: StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (BuildContext context, AsyncSnapshot<User?> snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator(); // Show a loading spinner while waiting for auth state to change
+            } else {
+              if (snapshot.hasData) {
+                return QrGenerator(
+                  user: snapshot.data,
+                ); // If the user is logged in, show the Home Page
+              } else {
+                return const LoginPage(); // If the user is not logged in, show the Login Page
+              }
+            }
+          },
+        ));
+  }
+}
+
+class AppLink {
+  String? playStoreUrl;
+  String? appStoreUrl;
+  String? defaultUrl;
+
+  bool loading = false;
+  bool hasChanged = true;
+
+  bool get isValid {
+    return playStoreUrl != null && appStoreUrl != null && defaultUrl != null
+        ? Uri.tryParse(playStoreUrl!) != null &&
+            Uri.tryParse(appStoreUrl!) != null &&
+            Uri.tryParse(defaultUrl!) != null
+        : false;
+  }
+
+  String? computeHash() {
+    if (!isValid) {
+      return null;
+    }
+
+    final playStoreUri = Uri.parse(playStoreUrl!);
+    final appStoreUri = Uri.parse(appStoreUrl!);
+    final defaultUri = Uri.parse(defaultUrl!);
+
+    final combinedUri = playStoreUri.toString() +
+        appStoreUri.toString() +
+        defaultUri.toString();
+
+    var bytes = utf8.encode(combinedUri);
+    var digest = sha256.convert(bytes);
+
+    String base64Hash = base64Encode(digest.bytes);
+    return base64Hash.substring(0, 6);
   }
 }
 
@@ -41,7 +99,9 @@ class QrCodeViewSettings {
 }
 
 class QrGenerator extends StatefulWidget {
-  const QrGenerator({super.key});
+  final User? user;
+
+  const QrGenerator({super.key, this.user});
 
   @override
   QrGeneratorState createState() => QrGeneratorState();
@@ -52,6 +112,8 @@ class QrGeneratorState extends State<QrGenerator> {
   QrOutputType outputType = QrOutputType.png;
   QrPngSize pngSize = QrPngSize.medium;
   int finalPngSize = 512;
+
+  final AppLink appLink = AppLink();
 
   bool pngWithoutBackground = true;
 
@@ -103,6 +165,38 @@ class QrGeneratorState extends State<QrGenerator> {
 
   void calculateVcard() {
     textInput = vCard.getFormattedString();
+  }
+
+  Future<String?> createAppStoreRedirectLink() async {
+    if (!appLink.isValid) {
+      return null;
+    }
+
+    setState(() {
+      appLink.loading = true;
+    });
+
+    final playStoreUri = Uri.parse(appLink.playStoreUrl!);
+    final appStoreUri = Uri.parse(appLink.appStoreUrl!);
+    final defaultUri = Uri.parse(appLink.defaultUrl!);
+    final docId = appLink.computeHash()!;
+
+    final db = FirebaseFirestore.instance;
+
+    final newDoc = db.collection('links').doc(docId);
+
+    await newDoc.set({
+      "url_android": playStoreUri.toString(),
+      "url_ios": appStoreUri.toString(),
+      "url_default": defaultUri.toString(),
+    });
+
+    setState(() {
+      appLink.loading = false;
+      appLink.hasChanged = false;
+    });
+
+    return "https://qro.mvmcj.com/qr?id=${newDoc.id}";
   }
 
   Future<void> saveQrCode(QrSaveType saveType) async {
@@ -165,6 +259,17 @@ class QrGeneratorState extends State<QrGenerator> {
     final qrCodeViewSettings = getQrCodeViewSettings(mediaQuery);
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('QRo'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+            },
+          ),
+        ],
+      ),
       backgroundColor: Colors.purple[100],
       body: Form(
         key: _formKey,
@@ -205,22 +310,30 @@ class QrGeneratorState extends State<QrGenerator> {
                                     Container(
                                       margin: const EdgeInsets.only(top: 8.0),
                                       child: SegmentedButton<QrType>(
-                                        segments: const [
-                                          ButtonSegment(
+                                        segments: [
+                                          const ButtonSegment(
                                             value: QrType.link,
                                             label: Text('Link'),
                                             icon: Icon(Icons.link),
                                           ),
-                                          ButtonSegment(
+                                          const ButtonSegment(
                                             value: QrType.text,
                                             label: Text('Texto'),
                                             icon: Icon(Icons.text_fields),
                                           ),
-                                          ButtonSegment(
+                                          const ButtonSegment(
                                             value: QrType.vcard,
                                             label: Text('vCard'),
                                             icon: Icon(Icons.person),
                                           ),
+                                          if (widget.user?.isAnonymous ==
+                                              false) ...[
+                                            const ButtonSegment(
+                                              value: QrType.appStore,
+                                              label: Text('App Store'),
+                                              icon: Icon(Icons.store),
+                                            ),
+                                          ],
                                         ],
                                         selected: <QrType>{type},
                                         onSelectionChanged: (value) {
@@ -284,6 +397,141 @@ class QrGeneratorState extends State<QrGenerator> {
                                                     },
                                                   ),
                                                 ),
+                                              ),
+                                            ],
+                                            if (type == QrType.appStore) ...[
+                                              Wrap(
+                                                spacing: 10.0,
+                                                runSpacing: 10.0,
+                                                children: [
+                                                  TextFormField(
+                                                      decoration:
+                                                          InputDecoration(
+                                                        border:
+                                                            const OutlineInputBorder(),
+                                                        icon: Icon(MdiIcons
+                                                            .googlePlay),
+                                                        labelText: 'Play Store',
+                                                      ),
+                                                      validator: (value) {
+                                                        if (value == null ||
+                                                            value.isEmpty) {
+                                                          return 'Por favor, insira um valor';
+                                                        }
+
+                                                        if (!Uri.tryParse(
+                                                                value)!
+                                                            .isAbsolute) {
+                                                          return 'Por favor, insira um link válido';
+                                                        }
+
+                                                        return null;
+                                                      },
+                                                      onChanged: (value) {
+                                                        _formKey.currentState!
+                                                            .validate();
+                                                        setState(() {
+                                                          appLink.playStoreUrl =
+                                                              value;
+                                                          appLink.hasChanged =
+                                                              true;
+                                                        });
+                                                      }),
+                                                  TextFormField(
+                                                    decoration: InputDecoration(
+                                                      labelText: 'Apple Store',
+                                                      icon: Icon(
+                                                          MdiIcons.appleIos),
+                                                      border:
+                                                          const OutlineInputBorder(),
+                                                    ),
+                                                    validator: (value) {
+                                                      if (value == null ||
+                                                          value.isEmpty) {
+                                                        return 'Por favor, insira um valor';
+                                                      }
+
+                                                      if (!Uri.tryParse(value)!
+                                                          .isAbsolute) {
+                                                        return 'Por favor, insira um link válido';
+                                                      }
+
+                                                      return null;
+                                                    },
+                                                    onChanged: (value) {
+                                                      _formKey.currentState!
+                                                          .validate();
+                                                      setState(() {
+                                                        appLink.appStoreUrl =
+                                                            value;
+                                                        appLink.hasChanged =
+                                                            true;
+                                                      });
+                                                    },
+                                                  ),
+                                                  TextFormField(
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      labelText: 'Link Padrão',
+                                                      icon: Icon(
+                                                          Icons.link_outlined),
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                    ),
+                                                    validator: (value) {
+                                                      if (value == null ||
+                                                          value.isEmpty) {
+                                                        return 'Por favor, insira um valor';
+                                                      }
+
+                                                      if (!Uri.tryParse(value)!
+                                                          .isAbsolute) {
+                                                        return 'Por favor, insira um link válido';
+                                                      }
+
+                                                      return null;
+                                                    },
+                                                    onChanged: (value) {
+                                                      _formKey.currentState!
+                                                          .validate();
+                                                      setState(() {
+                                                        appLink.defaultUrl =
+                                                            value;
+                                                        appLink.hasChanged =
+                                                            true;
+                                                      });
+                                                    },
+                                                  ),
+                                                  if (appLink.hasChanged &&
+                                                      appLink.isValid)
+                                                    ElevatedButton(
+                                                      onPressed: () async {
+                                                        final url =
+                                                            await createAppStoreRedirectLink();
+
+                                                        if (url != null) {
+                                                          setState(() {
+                                                            textInput = url;
+                                                          });
+
+                                                          if (context.mounted) {
+                                                            ScaffoldMessenger
+                                                                    .of(context)
+                                                                .showSnackBar(
+                                                              const SnackBar(
+                                                                content: Text(
+                                                                    'Link criado com sucesso!'),
+                                                              ),
+                                                            );
+                                                          }
+                                                        }
+                                                      },
+                                                      child: const Text(
+                                                          'Criar Link'),
+                                                    ),
+                                                  if (appLink.loading)
+                                                    const CircularProgressIndicator(),
+                                                ],
                                               ),
                                             ],
                                             if (type == QrType.vcard) ...[
@@ -564,4 +812,4 @@ enum QrPngSize { custom, medium, large }
 
 enum QrOutputType { png, svg }
 
-enum QrType { link, text, vcard }
+enum QrType { link, text, vcard, appStore }
